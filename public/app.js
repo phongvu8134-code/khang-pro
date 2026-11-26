@@ -908,28 +908,202 @@
     openModal("moneyModal");
   });
 
+  /* ---------- Real ISO/IEC 18004 Scannable QR Code (Byte Mode, ECC-M) ---------- */
   function drawStylishQr(canvas, text) {
+    const bytes = Array.from(new TextEncoder().encode(text));
+    // Version capacity (Byte mode, ECC Level M): V1=14, V2=26, V3=42, V4=62, V5=84, V6=106
+    const SPECS = [
+      null,
+      { size: 21, total: 26, data: 16, ecc: 10, align: [] },
+      { size: 25, total: 44, data: 28, ecc: 16, align: [6, 18] },
+      { size: 29, total: 70, data: 44, ecc: 26, align: [6, 22] },
+      { size: 33, total: 100, data: 64, ecc: 36, align: [6, 26] },
+      { size: 37, total: 134, data: 86, ecc: 48, align: [6, 30] },
+      { size: 41, total: 172, data: 108, ecc: 64, align: [6, 34] }
+    ];
+
+    let ver = 1;
+    while (ver < SPECS.length && bytes.length + 2 > SPECS[ver].data) ver++;
+    if (ver >= SPECS.length) ver = SPECS.length - 1;
+    const spec = SPECS[ver];
+    const n = spec.size;
+
+    // 1. Build Bit Stream (Mode 0100 = Byte + 8-bit length + data + terminator + pad)
+    const bits = [];
+    const pushBits = (val, len) => {
+      for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1);
+    };
+    pushBits(0b0100, 4);
+    const payload = bytes.slice(0, spec.data - 2);
+    pushBits(payload.length, 8);
+    payload.forEach((b) => pushBits(b, 8));
+    pushBits(0, Math.min(4, spec.data * 8 - bits.length));
+    while (bits.length % 8 !== 0) bits.push(0);
+
+    const dataCodewords = [];
+    for (let i = 0; i < bits.length; i += 8) {
+      let byte = 0;
+      for (let j = 0; j < 8; j++) byte = (byte << 1) | bits[i + j];
+      dataCodewords.push(byte);
+    }
+    const pads = [0xec, 0x11];
+    while (dataCodewords.length < spec.data) {
+      dataCodewords.push(pads[dataCodewords.length % 2]);
+    }
+
+    // 2. Reed-Solomon ECC over GF(256)
+    const gfMul = (x, y) => {
+      let r = 0;
+      for (let i = 0; i < 8; i++) if (y & (1 << i)) r ^= x << i;
+      for (let i = 14; i >= 8; i--) if (r & (1 << i)) r ^= 0x11d << (i - 8);
+      return r;
+    };
+    let gen = [1];
+    for (let i = 0; i < spec.ecc; i++) {
+      let a = 1;
+      for (let k = 0; k < i; k++) a = gfMul(a, 2);
+      const nxt = new Array(gen.length + 1).fill(0);
+      for (let j = 0; j < gen.length; j++) {
+        nxt[j] ^= gen[j];
+        nxt[j + 1] ^= gfMul(gen[j], a);
+      }
+      gen = nxt;
+    }
+    const rem = new Array(spec.ecc).fill(0);
+    for (const b of dataCodewords) {
+      const f = b ^ rem.shift();
+      rem.push(0);
+      for (let j = 0; j < spec.ecc; j++) rem[j] ^= gfMul(gen[j + 1], f);
+    }
+    const allCodewords = dataCodewords.concat(rem);
+
+    // 3. Matrix Setup
+    const mod = Array.from({ length: n }, () => new Array(n).fill(null));
+    const isFunc = Array.from({ length: n }, () => new Array(n).fill(false));
+    const setFunc = (r, c, v) => {
+      if (r >= 0 && r < n && c >= 0 && c < n) {
+        mod[r][c] = v ? 1 : 0;
+        isFunc[r][c] = true;
+      }
+    };
+
+    const placeFinder = (sr, sc) => {
+      for (let r = -1; r <= 7; r++) {
+        for (let c = -1; c <= 7; c++) {
+          const inBox = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+          const dark =
+            inBox &&
+            (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+          setFunc(sr + r, sc + c, dark);
+        }
+      }
+    };
+    placeFinder(0, 0);
+    placeFinder(0, n - 7);
+    placeFinder(n - 7, 0);
+
+    // Alignment pattern
+    if (spec.align.length === 2) {
+      const ac = spec.align[1];
+      for (let r = -2; r <= 2; r++) {
+        for (let c = -2; c <= 2; c++) {
+          const dark = Math.max(Math.abs(r), Math.abs(c)) !== 1;
+          setFunc(ac + r, ac + c, dark);
+        }
+      }
+    }
+
+    // Timing patterns & dark module
+    for (let i = 8; i < n - 8; i++) {
+      setFunc(6, i, i % 2 === 0);
+      setFunc(i, 6, i % 2 === 0);
+    }
+    setFunc(n - 8, 8, 1);
+
+    // Reserve format info cells
+    for (let i = 0; i < 9; i++) {
+      if (!isFunc[8][i]) isFunc[8][i] = true;
+      if (!isFunc[i][8]) isFunc[i][8] = true;
+    }
+    for (let i = 0; i < 8; i++) {
+      isFunc[8][n - 1 - i] = true;
+      isFunc[n - 1 - i][8] = true;
+    }
+
+    // 4. Zigzag Data Placement + Mask Pattern 0 ((r + c) % 2 === 0)
+    const bitStream = [];
+    allCodewords.forEach((cw) => {
+      for (let b = 7; b >= 0; b--) bitStream.push((cw >>> b) & 1);
+    });
+    let idx = 0;
+    let upward = true;
+    for (let right = n - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let step = 0; step < n; step++) {
+        const r = upward ? n - 1 - step : step;
+        for (let dx = 0; dx < 2; dx++) {
+          const c = right - dx;
+          if (!isFunc[r][c]) {
+            const bit = idx < bitStream.length ? bitStream[idx++] : 0;
+            mod[r][c] = bit ^ ((r + c) % 2 === 0 ? 1 : 0);
+          }
+        }
+      }
+      upward = !upward;
+    }
+
+    // 5. Format Info for ECC-M (00) + Mask 0 (000) -> 101010000010010
+    const FMT = 0b101010000010010;
+    const fmtBit = (i) => (FMT >>> i) & 1;
+    const fCoords1 = [
+      [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 7], [8, 8],
+      [7, 8], [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8]
+    ];
+    fCoords1.forEach(([r, c], i) => { mod[r][c] = fmtBit(14 - i); });
+    for (let i = 0; i < 8; i++) mod[8][n - 1 - i] = fmtBit(i);
+    for (let i = 0; i < 7; i++) mod[n - 7 + i][8] = fmtBit(14 - i);
+
+    // 6. Render Crisp Scannable Canvas
     const ctx = canvas.getContext("2d");
     const size = canvas.width;
-    const cells = 25;
     const pad = 16;
-    const cell = (size - pad * 2) / cells;
+    const cell = (size - pad * 2) / n;
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, size, size);
 
-    let seed = 2166136261;
-    for (let i = 0; i < text.length; i++) {
-      seed ^= text.charCodeAt(i);
-      seed = Math.imul(seed, 16777619);
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (mod[r][c]) {
+          ctx.fillStyle = "#0f172a";
+          ctx.fillRect(
+            Math.floor(pad + c * cell),
+            Math.floor(pad + r * cell),
+            Math.ceil(cell),
+            Math.ceil(cell)
+          );
+        }
+      }
     }
-    const nextBit = () => {
-      seed ^= seed << 13;
-      seed ^= seed >>> 17;
-      seed ^= seed << 5;
-      return (seed >>> 0) & 1;
-    };
 
+    // Small center KV badge (safe within 15% ECC-M recovery budget)
+    const badge = Math.round(size * 0.14);
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.roundRect(size / 2 - badge / 2 - 2, size / 2 - badge / 2 - 2, badge + 4, badge + 4, 7);
+    ctx.fill();
+
+    ctx.fillStyle = "#1d4ed8";
+    ctx.beginPath();
+    ctx.roundRect(size / 2 - badge / 2, size / 2 - badge / 2, badge, badge, 6);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 11px 'Be Vietnam Pro', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("KV", size / 2, size / 2 + 0.5);
+  }
     const isFinder = (r, c) =>
       (r < 7 && c < 7) || (r < 7 && c >= cells - 7) || (r >= cells - 7 && c < 7);
 
