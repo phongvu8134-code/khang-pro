@@ -53,7 +53,7 @@
   let state = structuredClone(DEFAULT_DATA);
   let isAdmin = false;
   let editMode = false;
-  let authMode = "local"; // "cloud" when Cloudflare Worker API is active
+  let authMode = "local";
   let authInitialized = false;
 
   const $ = (id) => document.getElementById(id);
@@ -190,7 +190,6 @@
      4. LOAD PROFILE & AUTO-DETECT AUTH STATUS
      ======================================================================== */
   async function initApp() {
-    // 1) Check Worker Auth API first
     try {
       const res = await fetch("/api/auth/status", { credentials: "same-origin", cache: "no-store" });
       if (res.ok) {
@@ -210,7 +209,6 @@
       }
     }
 
-    // 2) Load Profile Data
     let loadedCloud = false;
     if (authMode === "cloud") {
       try {
@@ -242,7 +240,6 @@
     updateSyncStatus();
     render();
 
-    // Check URL trigger (?admin)
     const params = new URLSearchParams(window.location.search);
     if (params.has("admin") && !isAdmin) {
       history.replaceState({}, "", window.location.pathname);
@@ -277,7 +274,6 @@
     $("labelContact").textContent = state.buttons.contactLabel || "Contact";
     $("labelMoney").textContent = state.buttons.moneyLabel || "Send money";
 
-    // Banner Colors
     const cols = Array.isArray(state.bannerColors) && state.bannerColors.length === 3
       ? state.bannerColors
       : PRESET_COLORS.default;
@@ -285,7 +281,6 @@
     document.documentElement.style.setProperty("--c2", cols[1]);
     document.documentElement.style.setProperty("--c3", cols[2]);
 
-    // Banner Mode & Image
     const card = $("profileCard");
     const useImg = state.bannerMode === "image" && !!state.bannerImageDataUrl;
     card.setAttribute("data-banner-mode", useImg ? "image" : "mesh");
@@ -302,7 +297,6 @@
       $("bannerDimLayer").style.setProperty("--banner-dim", "0");
     }
 
-    // Avatar
     const customImg = $("customAvatarImg");
     const defaultSvg = $("defaultAvatarSvg");
     if (state.avatarDataUrl) {
@@ -314,7 +308,6 @@
       defaultSvg.style.display = "block";
     }
 
-    // Secondary Details Card
     const detailList = $("detailList");
     detailList.innerHTML = "";
     (state.details || []).forEach((item) => {
@@ -419,7 +412,6 @@
       return;
     }
 
-    // FIRST-TIME SETUP
     if (!authInitialized) {
       if (pass !== confirmPass) {
         showAuthError(errEl, "Mật khẩu xác nhận không khớp.");
@@ -451,7 +443,6 @@
       return;
     }
 
-    // REGULAR LOGIN
     if (authMode === "cloud") {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -478,7 +469,6 @@
     }
   });
 
-  // SECURE PASSWORD UPDATE (Verifies current password & persists permanently)
   $("changePasswordForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errEl = $("changePassError");
@@ -556,7 +546,6 @@
     if (active) showToast("Chạm vào chữ, ảnh đại diện hoặc nút Đổi ảnh bìa để sửa trực tiếp");
   }
 
-  /* Discreet Admin Triggers: Ctrl+Shift+A OR 5 rapid clicks on Avatar */
   window.addEventListener("keydown", (e) => {
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") {
       e.preventDefault();
@@ -716,7 +705,6 @@
     render();
   });
 
-  /* ---------- Admin Drawer Open / Save ---------- */
   function openDrawer() {
     $("inName").value = state.name;
     $("inSubtitle").value = state.subtitle;
@@ -908,10 +896,11 @@
     openModal("moneyModal");
   });
 
-  /* ---------- Real ISO/IEC 18004 Scannable QR Code (Byte Mode, ECC-M) ---------- */
+  /* ========================================================================
+     10. REAL ISO/IEC 18004 SCANNABLE QR CODE (Byte Mode, ECC-M)
+     ======================================================================== */
   function drawStylishQr(canvas, text) {
     const bytes = Array.from(new TextEncoder().encode(text));
-    // Version capacity (Byte mode, ECC Level M): V1=14, V2=26, V3=42, V4=62, V5=84, V6=106
     const SPECS = [
       null,
       { size: 21, total: 26, data: 16, ecc: 10, align: [] },
@@ -928,7 +917,6 @@
     const spec = SPECS[ver];
     const n = spec.size;
 
-    // 1. Build Bit Stream (Mode 0100 = Byte + 8-bit length + data + terminator + pad)
     const bits = [];
     const pushBits = (val, len) => {
       for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1);
@@ -951,7 +939,6 @@
       dataCodewords.push(pads[dataCodewords.length % 2]);
     }
 
-    // 2. Reed-Solomon ECC over GF(256)
     const gfMul = (x, y) => {
       let r = 0;
       for (let i = 0; i < 8; i++) if (y & (1 << i)) r ^= x << i;
@@ -977,7 +964,6 @@
     }
     const allCodewords = dataCodewords.concat(rem);
 
-    // 3. Matrix Setup
     const mod = Array.from({ length: n }, () => new Array(n).fill(null));
     const isFunc = Array.from({ length: n }, () => new Array(n).fill(false));
     const setFunc = (r, c, v) => {
@@ -1002,7 +988,6 @@
     placeFinder(0, n - 7);
     placeFinder(n - 7, 0);
 
-    // Alignment pattern
     if (spec.align.length === 2) {
       const ac = spec.align[1];
       for (let r = -2; r <= 2; r++) {
@@ -1013,14 +998,12 @@
       }
     }
 
-    // Timing patterns & dark module
     for (let i = 8; i < n - 8; i++) {
       setFunc(6, i, i % 2 === 0);
       setFunc(i, 6, i % 2 === 0);
     }
     setFunc(n - 8, 8, 1);
 
-    // Reserve format info cells
     for (let i = 0; i < 9; i++) {
       if (!isFunc[8][i]) isFunc[8][i] = true;
       if (!isFunc[i][8]) isFunc[i][8] = true;
@@ -1030,7 +1013,6 @@
       isFunc[n - 1 - i][8] = true;
     }
 
-    // 4. Zigzag Data Placement + Mask Pattern 0 ((r + c) % 2 === 0)
     const bitStream = [];
     allCodewords.forEach((cw) => {
       for (let b = 7; b >= 0; b--) bitStream.push((cw >>> b) & 1);
@@ -1052,7 +1034,6 @@
       upward = !upward;
     }
 
-    // 5. Format Info for ECC-M (00) + Mask 0 (000) -> 101010000010010
     const FMT = 0b101010000010010;
     const fmtBit = (i) => (FMT >>> i) & 1;
     const fCoords1 = [
@@ -1063,7 +1044,6 @@
     for (let i = 0; i < 8; i++) mod[8][n - 1 - i] = fmtBit(i);
     for (let i = 0; i < 7; i++) mod[n - 7 + i][8] = fmtBit(14 - i);
 
-    // 6. Render Crisp Scannable Canvas
     const ctx = canvas.getContext("2d");
     const size = canvas.width;
     const pad = 16;
@@ -1086,7 +1066,6 @@
       }
     }
 
-    // Small center KV badge (safe within 15% ECC-M recovery budget)
     const badge = Math.round(size * 0.14);
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
@@ -1104,53 +1083,9 @@
     ctx.textBaseline = "middle";
     ctx.fillText("KV", size / 2, size / 2 + 0.5);
   }
-    const isFinder = (r, c) =>
-      (r < 7 && c < 7) || (r < 7 && c >= cells - 7) || (r >= cells - 7 && c < 7);
-
-    const drawFinder = (sr, sc) => {
-      for (let r = 0; r < 7; r++) {
-        for (let c = 0; c < 7; c++) {
-          const border = r === 0 || r === 6 || c === 0 || c === 6;
-          const center = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-          if (border || center) {
-            ctx.fillStyle = "#0f172a";
-            ctx.beginPath();
-            ctx.roundRect(pad + (sc + c) * cell, pad + (sr + r) * cell, cell - 0.6, cell - 0.6, 2);
-            ctx.fill();
-          }
-        }
-      }
-    };
-
-    drawFinder(0, 0);
-    drawFinder(0, cells - 7);
-    drawFinder(cells - 7, 0);
-
-    for (let r = 0; r < cells; r++) {
-      for (let c = 0; c < cells; c++) {
-        if (isFinder(r, c) || (r >= 10 && r <= 14 && c >= 10 && c <= 14)) continue;
-        if (nextBit()) {
-          ctx.fillStyle = (r + c) % 7 === 0 ? "#1d4ed8" : "#0f172a";
-          ctx.beginPath();
-          ctx.roundRect(pad + c * cell + 0.5, pad + r * cell + 0.5, cell - 1.2, cell - 1.2, 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    ctx.fillStyle = "#1d4ed8";
-    ctx.beginPath();
-    ctx.roundRect(size / 2 - 14, size / 2 - 14, 28, 28, 7);
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 12px 'Be Vietnam Pro', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("KV", size / 2, size / 2 + 0.5);
-  }
 
   /* ========================================================================
-     10. TACTILE MICRO-INTERACTIONS (Card Glow + Avatar 3D Specular + Ripple)
+     11. TACTILE MICRO-INTERACTIONS (Card Glow + Avatar 3D Specular + Ripple)
      ======================================================================== */
   document.querySelectorAll(".profile-card, .secondary-card").forEach((card) => {
     card.addEventListener("pointermove", (e) => {
@@ -1172,7 +1107,6 @@
     });
   });
 
-  // Dedicated 3D tactile tilt & specular spotlight for Avatar (works on uploaded photos!)
   const avatarWrap = $("avatarWrap");
   avatarWrap.addEventListener("pointermove", (e) => {
     const r = avatarWrap.getBoundingClientRect();
