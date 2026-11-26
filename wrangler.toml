@@ -1,0 +1,11 @@
+name = "khang-pro"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+[assets]
+directory = "."
+
+# Bắt buộc gắn PROFILE_KV để lưu mật khẩu & dữ liệu thẻ vĩnh viễn trên server Cloudflare:
+# [[kv_namespaces]]
+# binding = "PROFILE_KV"
+# id = "DIEN_KV_NAMESPACE_ID_CUA_BAN_VAO_DAY"

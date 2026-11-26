@@ -1,0 +1,51 @@
+{
+  "name": "Khang Vương",
+  "subtitle": "Student, C++ CB NC",
+  "location": "Somewhere in the earth",
+  "bio": "Who am I?",
+  "avatarDataUrl": "",
+  "avatarEffect": "prism",
+  "bannerMode": "mesh",
+  "bannerPreset": "default",
+  "bannerColors": [
+    "#f6c945",
+    "#2a9df4",
+    "#ef5350"
+  ],
+  "bannerImageDataUrl": "",
+  "bannerPosY": 50,
+  "bannerDim": 10,
+  "qrUrl": "",
+  "buttons": {
+    "shareLabel": "Share",
+    "contactLabel": "Contact",
+    "moneyLabel": "Send money"
+  },
+  "contact": {
+    "handle": "@KHANG-PRO",
+    "email": "khangvuong@example.com",
+    "codeforces": "https://codeforces.com/profile/KHANG-PRO",
+    "note": "Liên hệ giao lưu C/C++, thuật toán hoặc Minecraft mod."
+  },
+  "money": {
+    "bank": "Ngân hàng / Ví điện tử",
+    "accountName": "KHANG VUONG",
+    "accountNumber": "0000 0000 0000",
+    "note": "Chỉnh sửa thông tin nhận tiền trong chế độ Admin."
+  },
+  "detailsTitle": "About",
+  "details": [
+    {
+      "label": "Focus",
+      "value": "C/C++ · Algorithms (Codeforces) · OS Simulation"
+    },
+    {
+      "label": "Projects",
+      "value": "MYOS, VKOS, LiquidGlassOS, VK Ultimate, ChronoEdge Mod"
+    },
+    {
+      "label": "Goals",
+      "value": "B2 First · IELTS 8.0+ · IOI · MIT / Harvard"
+    }
+  ]
+}

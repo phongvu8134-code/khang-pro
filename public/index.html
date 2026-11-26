@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khang Vương</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Subtle ambient light blobs behind the crisp light canvas -->
+  <div class="page-ambient" aria-hidden="true">
+    <div class="amb amb-1"></div>
+    <div class="amb amb-2"></div>
+    <div class="amb amb-3"></div>
+  </div>
+
+  <!-- Admin Top Bar (Auto-revealed ONLY when authenticated Admin session is detected) -->
+  <div class="admin-bar" id="adminBar" hidden>
+    <div class="admin-bar-left">
+      <span class="admin-dot"></span>
+      <span class="admin-badge-text">Admin</span>
+      <span class="sync-status" id="syncStatus">Đang kiểm tra...</span>
+    </div>
+    <div class="admin-bar-actions">
+      <button type="button" class="ab-btn ab-edit" id="toggleEditBtn">Sửa nhanh</button>
+      <button type="button" class="ab-btn ab-panel" id="openDrawerBtn">Cài đặt &amp; Ảnh</button>
+      <button type="button" class="ab-btn ab-save" id="saveAllBtn" hidden>Lưu vĩnh viễn</button>
+      <button type="button" class="ab-btn ab-logout" id="logoutAdminBtn" title="Đăng xuất Admin">Thoát</button>
+    </div>
+  </div>
+
+  <main class="page-wrap">
+    <!-- PRIMARY PROFILE CARD -->
+    <article class="profile-card reveal-card" id="profileCard" data-banner-mode="mesh" data-avatar-effect="prism">
+      <div class="card-border-glow" aria-hidden="true"></div>
+
+      <!-- Fluid Animated Mesh Banner OR Uploaded Custom Cover Photo -->
+      <div class="card-banner" id="cardBanner">
+        <div class="banner-mesh-wrap" id="bannerMeshWrap">
+          <div class="mesh-layer mesh-c1"></div>
+          <div class="mesh-layer mesh-c2"></div>
+          <div class="mesh-layer mesh-c3"></div>
+          <div class="mesh-layer mesh-highlight"></div>
+        </div>
+        <img id="customBannerImg" class="banner-photo" alt="Ảnh bìa" hidden />
+        <div class="banner-dim-layer" id="bannerDimLayer"></div>
+        <div class="banner-sheen"></div>
+
+        <!-- Quick cover upload trigger visible only in Admin Edit Mode -->
+        <button type="button" class="quick-media-btn banner-edit-btn" id="quickBannerBtn" title="Đổi ảnh bìa / màu bìa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <circle cx="8.5" cy="10.5" r="1.5"></circle>
+            <path d="M21 15l-5-5L5 21"></path>
+          </svg>
+          <span>Đổi ảnh bìa</span>
+        </button>
+      </div>
+
+      <!-- Card Content -->
+      <div class="card-body">
+        <!-- Overlapping Avatar with Universal Premium Effects + QR Badge -->
+        <div class="avatar-row">
+          <div class="avatar-wrap" id="avatarWrap">
+            <!-- Rotating luminous halo behind avatar (works for BOTH uploaded photo & SVG) -->
+            <div class="avatar-aura" aria-hidden="true"></div>
+            <div class="avatar-ring" aria-hidden="true"></div>
+
+            <div class="avatar-circle" id="avatarCircle">
+              <!-- Default Crisp 3-Bar Geometric Logo -->
+              <svg class="avatar-bars" id="defaultAvatarSvg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="Logo Khang Vương">
+                <g class="bar bar-1">
+                  <rect x="16" y="39" width="24" height="63" rx="11" fill="#eab308"/>
+                  <path d="M28 39h1c6.075 0 11 4.925 11 11v41c0 6.075-4.925 11-11 11h-1V39z" fill="#f59e0b" opacity="0.45"/>
+                  <path d="M16 50c0-6.075 4.925-11 11-11h1v63h-1c-6.075 0-11-4.925-11-11V50z" fill="#d97706" opacity="0.35"/>
+                </g>
+                <g class="bar bar-2">
+                  <rect x="48" y="18" width="24" height="84" rx="11" fill="#1d9bf0"/>
+                  <path d="M48 29c0-6.075 4.925-11 11-11h1v84h-1c-6.075 0-11-4.925-11-11V29z" fill="#0284c7" opacity="0.45"/>
+                </g>
+                <g class="bar bar-3">
+                  <rect x="80" y="53" width="24" height="49" rx="11" fill="#ef4444"/>
+                  <path d="M80 64c0-6.075 4.925-11 11-11h1v49h-1c-6.075 0-11-4.925-11-11V64z" fill="#dc2626" opacity="0.42"/>
+                </g>
+              </svg>
+
+              <!-- Uploaded Custom Photo -->
+              <img id="customAvatarImg" class="avatar-photo" alt="Avatar" hidden />
+
+              <!-- Glass Sheen + Specular Highlight over Avatar (always active even on custom photos!) -->
+              <div class="avatar-sheen" aria-hidden="true"></div>
+              <div class="avatar-specular" aria-hidden="true"></div>
+            </div>
+
+            <!-- Quick Avatar Upload Button visible only in Admin Edit Mode -->
+            <button type="button" class="quick-media-btn avatar-edit-btn" id="quickAvatarBtn" title="Tải ảnh đại diện mới" aria-label="Tải ảnh đại diện mới">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+            </button>
+
+            <!-- Black QR Badge -->
+            <button type="button" class="qr-badge" id="qrBtn" title="Mở mã QR" aria-label="Mở mã QR">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+                <rect x="3" y="3" width="6" height="6"></rect>
+                <rect x="15" y="3" width="6" height="6"></rect>
+                <rect x="3" y="15" width="6" height="6"></rect>
+                <path d="M15 15h2v2h-2zM19 15h2v2h-2zM15 19h2v2h-2zM19 19h2v2h-2z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden Quick Upload Inputs -->
+        <input type="file" id="quickAvatarInput" accept="image/*" hidden />
+        <input type="file" id="quickBannerInput" accept="image/*" hidden />
+
+        <!-- Text Details -->
+        <div class="info-block">
+          <h1 class="profile-name editable-field" id="fieldName" data-key="name">Khang Vương</h1>
+          <p class="profile-meta editable-field" id="fieldSubtitle" data-key="subtitle">Student, C++ CB NC</p>
+          <p class="profile-meta editable-field" id="fieldLocation" data-key="location">Somewhere in the earth</p>
+          <p class="profile-bio editable-field" id="fieldBio" data-key="bio">Who am I?</p>
+        </div>
+
+        <!-- Action Buttons Row -->
+        <div class="actions-row">
+          <button type="button" class="action-btn action-primary" id="shareBtn">
+            <span class="btn-sheen"></span>
+            <span class="btn-text" id="labelShare">Share</span>
+          </button>
+          <button type="button" class="action-btn" id="contactBtn">
+            <span class="btn-sheen"></span>
+            <span class="btn-text" id="labelContact">Contact</span>
+          </button>
+          <button type="button" class="action-btn" id="moneyBtn">
+            <span class="btn-sheen"></span>
+            <span class="btn-text" id="labelMoney">Send money</span>
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <!-- SECONDARY CLEAN INFO CARD -->
+    <section class="secondary-card reveal-card" id="secondaryCard">
+      <div class="card-border-glow" aria-hidden="true"></div>
+      <div class="sec-head">
+        <h2 class="sec-title editable-field" id="fieldDetailsTitle" data-key="detailsTitle">About</h2>
+        <span class="sec-pill">Profile</span>
+      </div>
+      <div class="detail-list" id="detailList"></div>
+    </section>
+  </main>
+
+  <!-- MODAL: QR / SHARE -->
+  <div class="modal-backdrop" id="qrModal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
+      <div class="modal-head">
+        <h3 id="qrModalTitle">Chia sẻ thẻ giới thiệu</h3>
+        <button type="button" class="modal-close" data-close="qrModal" aria-label="Đóng">✕</button>
+      </div>
+      <div class="qr-stage">
+        <canvas id="qrCanvas" width="210" height="210"></canvas>
+      </div>
+      <p class="modal-sub" id="shareUrlText"></p>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn primary" id="copyLinkBtn">Sao chép liên kết</button>
+        <button type="button" class="modal-btn" id="nativeShareBtn">Chia sẻ nhanh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONTACT -->
+  <div class="modal-backdrop" id="contactModal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+      <div class="modal-head">
+        <h3 id="contactModalTitle">Contact</h3>
+        <button type="button" class="modal-close" data-close="contactModal" aria-label="Đóng">✕</button>
+      </div>
+      <p class="modal-note" id="contactNote"></p>
+      <div class="info-rows" id="contactRows"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: SEND MONEY -->
+  <div class="modal-backdrop" id="moneyModal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="moneyModalTitle">
+      <div class="modal-head">
+        <h3 id="moneyModalTitle">Send money</h3>
+        <button type="button" class="modal-close" data-close="moneyModal" aria-label="Đóng">✕</button>
+      </div>
+      <p class="modal-note" id="moneyNote"></p>
+      <div class="info-rows" id="moneyRows"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: SECURE ADMIN AUTH (First-Time Setup OR Login — NO default password ever shown or hardcoded!) -->
+  <div class="modal-backdrop" id="adminAuthModal" hidden>
+    <div class="modal-box modal-sm" role="dialog" aria-modal="true" aria-labelledby="adminAuthTitle">
+      <div class="modal-head">
+        <h3 id="adminAuthTitle">Xác thực Admin</h3>
+        <button type="button" class="modal-close" data-close="adminAuthModal" aria-label="Đóng">✕</button>
+      </div>
+      <p class="modal-note" id="adminAuthDesc"></p>
+      <form id="adminAuthForm" class="login-form">
+        <input type="password" id="authPassInput" placeholder="Nhập mật khẩu Admin" autocomplete="current-password" minlength="6" required />
+        <input type="password" id="authConfirmInput" placeholder="Nhập lại mật khẩu để xác nhận" autocomplete="new-password" hidden />
+        <div class="auth-error" id="authError" hidden></div>
+        <button type="submit" class="modal-btn primary full" id="authSubmitBtn">Xác nhận</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN DRAWER (Full Media Upload, Banner Color Picker, Profile Editor, Secure Password Update) -->
+  <aside class="admin-drawer" id="adminDrawer" hidden>
+    <div class="drawer-head">
+      <div>
+        <h3>Quản trị thẻ (Admin)</h3>
+        <small id="drawerStorageInfo">Đang đồng bộ...</small>
+      </div>
+      <button type="button" class="modal-close" id="closeDrawerBtn" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- SECTION 1: AVATAR & EFFECT -->
+      <div class="drawer-section-title">Ảnh đại diện &amp; Hiệu ứng Avatar</div>
+      <div class="form-group">
+        <label>Tải ảnh đại diện lên (tự cắt tròn &amp; tối ưu dung lượng)</label>
+        <div class="upload-box">
+          <label class="upload-trigger" for="avatarFileInput">Chọn ảnh từ máy...</label>
+          <input type="file" id="avatarFileInput" accept="image/*" hidden />
+          <button type="button" class="mini-btn" id="resetAvatarBtn">Logo gốc</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Hiệu ứng khung Avatar (áp dụng cả khi đổi ảnh)</label>
+        <div class="preset-row" id="avatarEffectRow">
+          <button type="button" class="preset-chip" data-effect="prism">Ánh kim xoay</button>
+          <button type="button" class="preset-chip" data-effect="aura">Hào quang màu bìa</button>
+          <button type="button" class="preset-chip" data-effect="glass">Kính nổi 3D</button>
+        </div>
+      </div>
+
+      <hr class="drawer-sep" />
+
+      <!-- SECTION 2: BANNER PHOTO OR CUSTOM COLORS -->
+      <div class="drawer-section-title">Ảnh bìa &amp; Màu nền bìa</div>
+      <div class="form-group">
+        <label>Kiểu bìa</label>
+        <div class="mode-switch" id="bannerModeSwitch">
+          <button type="button" class="mode-btn" data-mode="mesh">Dải màu lỏng</button>
+          <button type="button" class="mode-btn" data-mode="image">Ảnh bìa tải lên</button>
+        </div>
+      </div>
+
+      <!-- Mesh Color Controls -->
+      <div id="bannerMeshControls" class="sub-panel">
+        <div class="form-group">
+          <label>Bộ màu gợi ý</label>
+          <div class="preset-row" id="bannerPresets">
+            <button type="button" class="preset-chip" data-preset="default">Gốc (Vàng·Xanh·Đỏ)</button>
+            <button type="button" class="preset-chip" data-preset="ocean">Đại dương</button>
+            <button type="button" class="preset-chip" data-preset="sunset">Hoàng hôn</button>
+            <button type="button" class="preset-chip" data-preset="mint">Ngọc bích</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Tự phối 3 màu bìa bất kỳ (Trái · Giữa · Phải)</label>
+          <div class="color-picker-row">
+            <label class="color-pill">
+              <input type="color" id="colorC1" value="#f6c945" />
+              <span>Trái</span>
+            </label>
+            <label class="color-pill">
+              <input type="color" id="colorC2" value="#2a9df4" />
+              <span>Giữa</span>
+            </label>
+            <label class="color-pill">
+              <input type="color" id="colorC3" value="#ef5350" />
+              <span>Phải</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner Image Controls -->
+      <div id="bannerImageControls" class="sub-panel" hidden>
+        <div class="form-group">
+          <label>Tải ảnh bìa lên từ thiết bị</label>
+          <div class="upload-box">
+            <label class="upload-trigger" for="bannerFileInput">Chọn ảnh bìa...</label>
+            <input type="file" id="bannerFileInput" accept="image/*" hidden />
+            <button type="button" class="mini-btn" id="removeBannerImgBtn">Xóa ảnh</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Căn vị trí ảnh bìa (Lên / Xuống): <span id="posYVal">50%</span></label>
+          <input type="range" id="bannerPosY" min="0" max="100" value="50" />
+        </div>
+        <div class="form-group">
+          <label>Độ phủ dịu mắt: <span id="dimVal">10%</span></label>
+          <input type="range" id="bannerDim" min="0" max="50" value="10" />
+        </div>
+      </div>
+
+      <hr class="drawer-sep" />
+
+      <!-- SECTION 3: PROFILE TEXT & LINKS -->
+      <div class="drawer-section-title">Thông tin hiển thị</div>
+      <div class="form-group">
+        <label>Tên hiển thị</label>
+        <input type="text" id="inName" />
+      </div>
+      <div class="form-group">
+        <label>Mô tả 1</label>
+        <input type="text" id="inSubtitle" />
+      </div>
+      <div class="form-group">
+        <label>Vị trí</label>
+        <input type="text" id="inLocation" />
+      </div>
+      <div class="form-group">
+        <label>Bio</label>
+        <input type="text" id="inBio" />
+      </div>
+
+      <div class="form-group">
+        <label>Contact — Handle / Email / Codeforces</label>
+        <input type="text" id="inHandle" placeholder="@KHANG-PRO" />
+        <input type="email" id="inEmail" placeholder="Email" />
+        <input type="url" id="inCodeforces" placeholder="Link Codeforces" />
+        <input type="text" id="inContactNote" placeholder="Ghi chú liên hệ" />
+      </div>
+
+      <div class="form-group">
+        <label>Send money — Ngân hàng / Tên / Số tài khoản</label>
+        <input type="text" id="inBank" placeholder="Tên ngân hàng / Ví" />
+        <input type="text" id="inAccName" placeholder="Tên chủ tài khoản" />
+        <input type="text" id="inAccNum" placeholder="Số tài khoản" />
+      </div>
+
+      <div class="form-group">
+        <label>Thẻ thông tin bên dưới (Mỗi dòng: Tiêu đề | Nội dung)</label>
+        <textarea id="inDetails" rows="4"></textarea>
+      </div>
+
+      <hr class="drawer-sep" />
+
+      <!-- SECTION 4: SECURE PASSWORD CHANGE -->
+      <div class="drawer-section-title">Bảo mật — Đổi mật khẩu Admin</div>
+      <form id="changePasswordForm" class="form-group">
+        <input type="password" id="curPassInput" placeholder="Mật khẩu hiện tại" autocomplete="current-password" required />
+        <input type="password" id="newPassInput" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)" autocomplete="new-password" minlength="6" required />
+        <input type="password" id="confirmNewPassInput" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password" minlength="6" required />
+        <div class="auth-error" id="changePassError" hidden></div>
+        <button type="submit" class="mini-btn accent-btn" id="updatePassBtn">Cập nhật mật khẩu vĩnh viễn</button>
+      </form>
+    </div>
+
+    <div class="drawer-foot">
+      <button type="button" class="modal-btn primary full" id="drawerSaveBtn">Lưu tất cả thay đổi vĩnh viễn</button>
+      <div class="foot-sub-actions">
+        <button type="button" class="mini-btn" id="exportJsonBtn">Tải profile-data.json</button>
+        <button type="button" class="mini-btn danger" id="resetDefaultBtn">Khôi phục nội dung gốc</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
